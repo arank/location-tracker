@@ -6,16 +6,22 @@ config.read('passwords.cfg')
 API_KEY = config.get('google', 'api_key')
 COOKIE = config.get('google', 'cookie')
 
+"""
+Converts python datetime to millis from the epoch
+"""
 def unix_time(dt):
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
     return delta.total_seconds() * 1000.0
 
 # TODO send alert on cookie/api_key expiration
+""" 
+Pulls all coordinates recorded by your device between the start and end times 
+(with both times being express in millis from the epoch) 
+"""
 def get_coordinates(start_time, end_time):
 	data = "[null,"+str(start_time)+","+str(end_time)+",true]"
 	out = BytesIO()
-	# TODO trim curl
 	c = pycurl.Curl()
 	c.setopt(c.WRITEFUNCTION, out.write)
 	c.setopt(pycurl.URL, "https://maps.google.com/locationhistory/b/0/apps/pvjson?t=0")
@@ -37,6 +43,9 @@ def get_coordinates(start_time, end_time):
 	dictionary = json.loads(out.getvalue())
 	return dictionary[1][1]
 
+"""
+Uses the google geocoding API to get an approximate location for a single latitude and logitude pair
+"""
 def get_approx_location(lat, lng):
 	location = json.load(urllib2.urlopen("https://maps.googleapis.com/maps/api/geocode/json?latlng="+str(lat)+","+str(lng)+"&key="+API_KEY))
 	return location['results'][2]['formatted_address']
