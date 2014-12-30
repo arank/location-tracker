@@ -1,10 +1,14 @@
-import pycurl, json, datetime, urllib2, ConfigParser
+import pycurl, json, datetime, urllib2, ConfigParser, pymongo, urllib2
 from io import BytesIO
 
+# TODO possibly selenium to get the data
 config = ConfigParser.RawConfigParser()
-config.read('passwords.cfg')
+config.read('passwords/passwords.cfg')
 API_KEY = config.get('google', 'api_key')
 COOKIE = config.get('google', 'cookie')
+MANUAL_HEADER = config.get('google', 'manual_header')
+MONGODB_URI = config.get('mongo', 'uri')
+MANDRILL_KEY = config.get('mandrill', 'api_key')
 
 """
 Converts python datetime to millis from the epoch
@@ -14,9 +18,9 @@ def unix_time(dt):
     delta = dt - epoch
     return delta.total_seconds() * 1000.0
 
-# TODO send alert on cookie/api_key expiration
+# TODO send alert/reset passwords.cfg on cookie expiration
 """ 
-Pulls all coordinates recorded by your device between the start and end times 
+Pulls all coordinates (as a list) recorded by your device between the start and end times 
 (with both times being express in millis from the epoch) 
 """
 def get_coordinates(start_time, end_time):
@@ -29,7 +33,7 @@ def get_coordinates(start_time, end_time):
 		['cookie: '+COOKIE,
 		'origin: https://maps.google.com',
 		'accept-encoding: application/json',
-		'x-manualheader: lBgJkp-_phUYxrlgPUKyP_KRkmY:1419717526596',
+		'x-manualheader: '+MANUAL_HEADER,
 		'accept-language: en-US,en;q=0.8',
 		'user-agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36',
 		'content-type: application/x-www-form-urlencoded;charset=UTF-8',
@@ -41,27 +45,61 @@ def get_coordinates(start_time, end_time):
 	c.perform()
 
 	dictionary = json.loads(out.getvalue())
-	return dictionary[1][1]
+	if(len(dictionary[1]) < 2):
+		return None
+	else:
+		return dictionary[1][1]
 
 """
 Uses the google geocoding API to get an approximate location for a single latitude and logitude pair
 """
-def get_approx_location(lat, lng):
+def get_approx_location(lat, lng, max_accuracy=2):
 	location = json.load(urllib2.urlopen("https://maps.googleapis.com/maps/api/geocode/json?latlng="+str(lat)+","+str(lng)+"&key="+API_KEY))
-	return location['results'][2]['formatted_address']
+	if(location['status'] == "OK"):	
+		accuracy = min(len(location['results'])-1, max_accuracy)
+		return location['results'][accuracy]['formatted_address']
+	else:
+		return None
 
-# def write_to_db():
+"""
+Sends a mail to me in case of script failure so I can fix it
+"""
+def send_failure_mail(log):
+	print("sending failure email with log "+log)
+	data = {
+		"key": MANDRILL_KEY,
+		"message": 
+		{   "text": log,
+			"subject": "Location Tracker Failed",
+			"from_email": "arankhanna@college.harvard.edu",
+			"from_name": "Location Tracker",
+			"to": [{"email": "arankhanna@college.harvard.edu"}]
+		},
+		"async": "false"
+	}
+	encoded_data = json.dumps(data)
+	urllib2.urlopen('https://mandrillapp.com/api/1.0/messages/send.json', encoded_data)
 
-
-
-today = datetime.date.today()
-end_time = unix_time(datetime.datetime.combine(today, datetime.datetime.min.time()))
+# TODO refactor into main and seperate files
+# today = datetime.date.today()
+# end_time = unix_time(datetime.datetime.combine(today, datetime.datetime.min.time()))
+end_time = unix_time(datetime.datetime.now())
 start_time = end_time - 86400000 # 24 hours in millis
 # list of all lat-long values
 coordinates = get_coordinates(start_time, end_time)
-print coordinates
-# TODO write coordinates to DB
-last_coord = coordinates[len(coordinates)-1]
-location = get_approx_location(last_coord[2], last_coord[3])
-# TODO write approx location to DB
-print location
+if coordinates is None:
+	send_failure_mail("failed on google coordinate grab")
+else:
+	client = pymongo.MongoClient(MONGODB_URI)
+	db = client.get_default_database()
+	# coordinate_list = []
+	# for coord in coordinates:
+	# 	coordinate_list.append({'time': int(coord[1]), 'lat': coord[2], 'long': coord[3]})
+	# db['coordinates'].insert(coordinate_list)
+	last_coord = coordinates[len(coordinates)-1]
+	location = get_approx_location(last_coord[2], last_coord[3])
+	if location is None:
+		send_failure_mail("failed on google geocoding lookup")
+	else:
+		print "recorded recent loaction at "+location
+		db['daily_location'].insert({'time': int(last_coord[1]), 'location': location})
