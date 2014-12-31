@@ -3,7 +3,7 @@ from io import BytesIO
 
 # TODO possibly selenium to get the data
 config = ConfigParser.RawConfigParser()
-config.read('passwords/passwords.cfg')
+config.read('passwords.cfg')
 API_KEY = config.get('google', 'api_key')
 COOKIE = config.get('google', 'cookie')
 MANUAL_HEADER = config.get('google', 'manual_header')
