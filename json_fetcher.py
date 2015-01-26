@@ -44,12 +44,15 @@ def get_coordinates(start_time, end_time):
 	c.setopt(pycurl.POSTFIELDS, data)
 	c.perform()
 
-	dictionary = json.loads(out.getvalue())
-	if(len(dictionary[1]) < 2):
+	try:
+		dictionary = json.loads(out.getvalue())
+		if(len(dictionary[1]) < 2):
+			return None
+		else:
+			return dictionary[1][1]
+	except:
 		return None
-	else:
-		return dictionary[1][1]
-
+		
 """
 Uses the google geocoding API to get an approximate location for a single latitude and logitude pair
 """
