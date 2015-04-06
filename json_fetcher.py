@@ -1,25 +1,21 @@
 import pycurl, json, datetime, urllib2, ConfigParser, pymongo, urllib2
 from io import BytesIO
 
-# TODO possibly selenium to get the data
+# TODO add Config to specify how many points to pull and mailer cfg
 config = ConfigParser.RawConfigParser()
 config.read('passwords.cfg')
 API_KEY = config.get('google', 'api_key')
-COOKIE = config.get('google', 'cookie')
-MANUAL_HEADER = config.get('google', 'manual_header')
 MONGODB_URI = config.get('mongo', 'uri')
 MANDRILL_KEY = config.get('mandrill', 'api_key')
 
-# """
-# Gets cookie and other variable credentials from mongo server
-# """
-# def get_google_credentials():
-# 	client = pymongo.MongoClient(MONGODB_URI)
-# 	db = client.get_default_database()
-# 	creds = db['credentials'].find().limit(1).sort({$natural:-1})
-# 	print creds
-# 	return creds['google-cookie'], creds['google-header']
-
+"""
+Gets cookie and other variable credentials from mongo server
+"""
+def get_google_credentials():
+	client = pymongo.MongoClient(MONGODB_URI)
+	db = client.get_default_database()
+	creds = db['credentials'].find_one()
+	return creds['google-cookie'], creds['google-header']
 
 """
 Converts python datetime to millis from the epoch
@@ -37,14 +33,15 @@ Pulls all coordinates (as a list) recorded by your device between the start and 
 def get_coordinates(start_time, end_time):
 	data = "[null,"+str(start_time)+","+str(end_time)+",true]"
 	out = BytesIO()
+	cookie, header = get_google_credentials()
 	c = pycurl.Curl()
 	c.setopt(c.WRITEFUNCTION, out.write)
 	c.setopt(pycurl.URL, "https://maps.google.com/locationhistory/b/0/apps/pvjson?t=0")
 	c.setopt(pycurl.HTTPHEADER, 
-		['cookie: '+COOKIE,
+		['cookie: '+cookie,
 		'origin: https://maps.google.com',
 		'accept-encoding: application/json',
-		'x-manualheader: '+MANUAL_HEADER,
+		'x-manualheader: '+header,
 		'accept-language: en-US,en;q=0.8',
 		'user-agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36',
 		'content-type: application/x-www-form-urlencoded;charset=UTF-8',
@@ -94,22 +91,16 @@ def send_failure_mail(log):
 	encoded_data = json.dumps(data)
 	urllib2.urlopen('https://mandrillapp.com/api/1.0/messages/send.json', encoded_data)
 
-# TODO refactor into main and seperate files
-# today = datetime.date.today()
-# end_time = unix_time(datetime.datetime.combine(today, datetime.datetime.min.time()))
+# TODO refactor into main and seperate files with configs for time range to grab.
 end_time = unix_time(datetime.datetime.now())
 start_time = end_time - 86400000 # 24 hours in millis
 # list of all lat-long values
 coordinates = get_coordinates(start_time, end_time)
 if coordinates is None:
-	send_failure_mail("failed on google coordinate grab")
+	send_failure_mail("Failed on google coordinate grab. Try to update credentials at https://mongolab.com/databases/personal-analytics/collections/credentials")
 else:
 	client = pymongo.MongoClient(MONGODB_URI)
 	db = client.get_default_database()
-	# coordinate_list = []
-	# for coord in coordinates:
-	# 	coordinate_list.append({'time': int(coord[1]), 'lat': coord[2], 'long': coord[3]})
-	# db['coordinates'].insert(coordinate_list)
 	last_coord = coordinates[len(coordinates)-1]
 	location = get_approx_location(last_coord[2], last_coord[3])
 	if location is None:
