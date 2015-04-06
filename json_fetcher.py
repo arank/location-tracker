@@ -75,6 +75,7 @@ def get_approx_location(lat, lng, max_accuracy=2):
 """
 Sends a mail to me in case of script failure so I can fix it
 """
+# TODO add config to this
 def send_failure_mail(log):
 	print("sending failure email with log "+log)
 	data = {
