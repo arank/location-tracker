@@ -4,18 +4,30 @@ var http = require("http"),
     db = mongojs.connect(uri, ["daily_location"]);
     var server = http.createServer(requestHandler);
 
-    function requestHandler(request, response) {
-    	response.writeHead(200, {"Content-Type": "application/json"});
-    	db.daily_location.find().limit(1).sort({"time": -1}, function(err, records) {
-    		if(err) {
-			    console.log("There was an error executing the database query.");
-			    response.write("null");
-			    response.end();
-			    return;
-			}
-			response.write(JSON.stringify(records[0]));
-			response.end();
-    	});
-    }
+    // TODO uncomment this when url controller is set up!!!!!
+   //  function requestHandler(request, response) {
+   //  	response.writeHead(200, {"Content-Type": "application/json"});
+   //  	db.daily_location.find().limit(1).sort({"time": -1}, function(err, records) {
+   //  		if(err) {
+			//     console.log("There was an error executing the database query.");
+			//     response.write("none");
+			//     response.end();
+			//     return;
+			// }
+   //          var date = new Date(records[0]['time']);
+			// response.write(JSON.stringify({'location':records[0]['location'], 'time': date.toString()}));
+			// response.end();
+   //  	});
+   //  }
 
-    server.listen(1234);
+    function requestHandler(request, response){
+        response.writeHead(200, {"Content-Type": "application/json"});
+        var exec = require('child_process').exec;
+        exec('python /home/ubuntu/Projects/location\ tracker/api_server/cookie_refresher.py', 
+            function (error, stdout, stderr) {
+                // Possibly do something with stdout
+            });
+        response.end()
+    } 
+
+    server.listen(5555);

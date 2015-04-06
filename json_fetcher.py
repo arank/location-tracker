@@ -10,6 +10,17 @@ MANUAL_HEADER = config.get('google', 'manual_header')
 MONGODB_URI = config.get('mongo', 'uri')
 MANDRILL_KEY = config.get('mandrill', 'api_key')
 
+# """
+# Gets cookie and other variable credentials from mongo server
+# """
+# def get_google_credentials():
+# 	client = pymongo.MongoClient(MONGODB_URI)
+# 	db = client.get_default_database()
+# 	creds = db['credentials'].find().limit(1).sort({$natural:-1})
+# 	print creds
+# 	return creds['google-cookie'], creds['google-header']
+
+
 """
 Converts python datetime to millis from the epoch
 """
