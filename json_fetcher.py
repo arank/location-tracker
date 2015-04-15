@@ -3,7 +3,7 @@ from io import BytesIO
 
 # TODO add Config to specify how many points to pull and mailer cfg
 config = ConfigParser.RawConfigParser()
-config.read('passwords.cfg')
+config.read('/var/www/location-tracker/passwords.cfg')
 API_KEY = config.get('google', 'api_key')
 MONGODB_URI = config.get('mongo', 'uri')
 MANDRILL_KEY = config.get('mandrill', 'api_key')
@@ -68,7 +68,8 @@ def get_approx_location(lat, lng, max_accuracy=2):
 	location = json.load(urllib2.urlopen("https://maps.googleapis.com/maps/api/geocode/json?latlng="+str(lat)+","+str(lng)+"&key="+API_KEY))
 	if(location['status'] == "OK"):	
 		accuracy = min(len(location['results'])-1, max_accuracy)
-		return location['results'][accuracy]['formatted_address']
+		loc = location['results'][accuracy]
+                return loc['formatted_address'], loc['geometry']['location']['lat'], loc['geometry']['location']['lng']
 	else:
 		return None
 
@@ -103,9 +104,9 @@ else:
 	client = pymongo.MongoClient(MONGODB_URI)
 	db = client.get_default_database()
 	last_coord = coordinates[len(coordinates)-1]
-	location = get_approx_location(last_coord[2], last_coord[3])
+	location, approx_lat, approx_long = get_approx_location(last_coord[2], last_coord[3])
 	if location is None:
 		send_failure_mail("failed on google geocoding lookup")
 	else:
 		print "recorded recent loaction at "+location
-		db['daily_location'].insert({'time': int(last_coord[1]), 'location': location})
+		db['daily_location'].insert({'time': int(last_coord[1]), 'location': location, 'approx-lat': approx_lat, 'approx-long': approx_long})
