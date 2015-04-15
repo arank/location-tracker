@@ -2,8 +2,10 @@
 from datetime import timedelta
 from flask import make_response, request, current_app
 from functools import update_wrapper
+from flask import Flask
+import pymongo, json
 
-
+# Decorator to allow any domain to access this API
 def crossdomain(origin=None, methods=None, headers=None,
                 max_age=21600, attach_to_all=True,
                 automatic_options=True):
@@ -46,20 +48,24 @@ def crossdomain(origin=None, methods=None, headers=None,
     return decorator
 
 
-from flask import Flask
-import pymongo, json
-
 app = Flask(__name__)
 
+# Endpoint to get the last (approximate) location recorded by the json_fetcher
 @app.route('/location-tracker')
 @crossdomain(origin='*')
 def index():
+    # Log onto mongo host
     client = pymongo.MongoClient("mongodb://aran:aran1025@ds047020.mongolab.com:47020/personal-analytics")
     db = client.get_default_database()
+
+    # Get all data points (exluding database id)
     pts = db['daily_location'].find({}, {'_id': False})
+    
+    # Return most recent point as a JSON
     last_point = pts[pts.count()-1] 
     j = json.dumps(last_point)
     return str(j)
 
+# Run the App
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

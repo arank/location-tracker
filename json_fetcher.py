@@ -14,6 +14,7 @@ Gets cookie and other variable credentials from mongo server
 def get_google_credentials():
 	client = pymongo.MongoClient(MONGODB_URI)
 	db = client.get_default_database()
+	# TODO check for failure
 	creds = db['credentials'].find_one()
 	return creds['google-cookie'], creds['google-header']
 
@@ -25,7 +26,6 @@ def unix_time(dt):
     delta = dt - epoch
     return delta.total_seconds() * 1000.0
 
-# TODO send alert/reset passwords.cfg on cookie expiration
 """ 
 Pulls all coordinates (as a list) recorded by your device between the start and end times 
 (with both times being express in millis from the epoch) 
@@ -91,22 +91,32 @@ def send_failure_mail(log):
 		"async": "false"
 	}
 	encoded_data = json.dumps(data)
+	# TODO check for failure
 	urllib2.urlopen('https://mandrillapp.com/api/1.0/messages/send.json', encoded_data)
 
-# TODO refactor into main and seperate files with configs for time range to grab.
+"""
+Writes arbitary number of data points to a mongo collection
+"""
+def write_to_mongo(points, collection):
+	client = pymongo.MongoClient(MONGODB_URI)
+	db = client.get_default_database()
+	for point in points:
+		# TODO check for failure
+		db[collection].insert(point)
+
+
+# Pull data points from the last 24 hours the last 24
 end_time = unix_time(datetime.datetime.now())
 start_time = end_time - 86400000 # 24 hours in millis
-# list of all lat-long values
 coordinates = get_coordinates(start_time, end_time)
+
 if coordinates is None:
 	send_failure_mail("Failed on google coordinate grab. Try to update credentials at https://mongolab.com/databases/personal-analytics/collections/credentials")
 else:
-	client = pymongo.MongoClient(MONGODB_URI)
-	db = client.get_default_database()
 	last_coord = coordinates[len(coordinates)-1]
 	location, approx_lat, approx_long = get_approx_location(last_coord[2], last_coord[3])
 	if location is None:
 		send_failure_mail("failed on google geocoding lookup")
 	else:
 		print "recorded recent loaction at "+location
-		db['daily_location'].insert({'time': int(last_coord[1]), 'location': location, 'approx-lat': approx_lat, 'approx-long': approx_long})
+		write_to_mongo([{'time': int(last_coord[1]), 'location': location, 'approx-lat': approx_lat, 'approx-long': approx_long}], 'daily_location')
