@@ -1,0 +1,59 @@
+/*Created by Aran Khanna (with some help from the interwebz), All Rights Reserved*/
+@charset "UTF-8";
+#map {
+    bottom:0;
+    width:40%;
+    height: 420px;
+    margin-left: 53%;
+    margin-top: 141px;
+}
+@media (max-width: 768px){
+    #map{
+        display: none;
+    }
+    .menu-ui{
+        display: none;
+    }
+    .find{
+        display: none;
+    }
+}
+@media (max-width:960px) {
+    #map{
+        margin-left: 59%;
+    }
+    .find{
+        margin-left: 59%;
+    }
+}
+
+/*TODO fix menu styling*/
+.menu-ui {
+    background:rgb(0,0,0,0);
+    position:absolute;
+    margin-top: 25px;
+    margin-left: 80%;
+    z-index:1;
+}
+.menu-ui a {
+    font-size:13px;
+    color:#404040;
+    display:inline;
+    margin:5px;padding:0;
+    padding:10px;
+    text-decoration:none;
+    border-bottom:1px solid rgba(0,0,0,0.25);
+    text-align:center;
+}
+.menu-ui a:hover {
+    background:#f8f8f8;
+    color:#404040;
+}
+.menu-ui a.active {
+    background:#dd1818;
+    color:#FFF;
+}
+.menu-ui a.active:hover {
+    background-color: #FFF;
+    color: #dd1818;
+}

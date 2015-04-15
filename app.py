@@ -5,6 +5,9 @@ from functools import update_wrapper
 from flask import Flask
 import pymongo, json
 
+'''
+Simple API server to expose location data scraped into mongodb
+'''
 # Decorator to allow any domain to access this API
 def crossdomain(origin=None, methods=None, headers=None,
                 max_age=21600, attach_to_all=True,
@@ -48,8 +51,10 @@ def crossdomain(origin=None, methods=None, headers=None,
     return decorator
 
 
+'''
+List of end points exposing data
+'''
 app = Flask(__name__)
-
 # Endpoint to get the last (approximate) location recorded by the json_fetcher
 @app.route('/location-tracker')
 @crossdomain(origin='*')
