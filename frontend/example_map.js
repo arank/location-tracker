@@ -1,8 +1,8 @@
 /*Created by Aran Khanna (with some help from the interwebz), All Rights Reserved*/
 
-L.mapbox.accessToken = 'pk.eyJ1IjoiYXJhbmtoYW5uYSIsImEiOiJEdDJreGxjIn0.Y3-LSV20SRRZOzs_6nSFjA';
+L.mapbox.accessToken = 'pk.eyJ1IjoiYXJhbmsiLCJhIjoiNmVkMjVjZDliZDBlNzBlOWE2YjEzMjg3ZGM4YmQ0YjEifQ.67Hd_kb6ham0CjZoMS5TIg';
 // Set scene to default home
-var map = L.mapbox.map('map', 'arankhanna.lnl5mal6')
+var map = L.mapbox.map('map', 'arank.ma385bjm')
  .setView([42.381982, -71.124694], 12);
 
 var layers = document.getElementById('menu-ui');
